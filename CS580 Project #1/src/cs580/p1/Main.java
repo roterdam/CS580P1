@@ -29,7 +29,8 @@ public class Main {
 	   }
 	   
 	   //Declarations for the parsing.
-	   String regex=".*(if|while|do|\\{|\\}).*",line=null;
+	   //TODO: Add section for "return"
+	   String regex=".*(if|while|do).*",line=null;
 	   int lineNumber=0;
 	   //cfg will store all of the nodes generated from parsing.
 	   LinkedList<Node> cfg = new LinkedList<Node>();
@@ -46,8 +47,6 @@ public class Main {
 	         //LineNumber != line number.  I know....
 	         //TODO: Make lineNumber variable clearer.
 	         lineNumber++;
-	         //Check to see if there are multiple predicates.
-	         boolean complexPredicate=false;
 	         //Check to see if the current line has a control command.
 	         //TODO: Deal with {,}
 	         if(line.matches(regex)) {
@@ -74,6 +73,14 @@ public class Main {
                   Node newNode = new Node(lineNumber);
                   newNode.simple=false;
                   newNode.ifNode=true;
+                  /*
+                   * To make sure that the control statement is equivalent
+                   * to what is in the code, we record the total number of
+                   * comparisons and will use that number to add edges to
+                   * the else-node if it exists (D1) or to the node that
+                   * follows the if (D0).
+                   */
+                  newNode.predicateCount=totalNumberOfPredicates;
                   
                   //Add a link going from the past node to the new node.
                   last.addEdge(newNode);
@@ -84,48 +91,18 @@ public class Main {
 	               for(int nodeNumber=1; 
 	                     nodeNumber<totalNumberOfPredicates; ++nodeNumber) {
 	                  lineNumber++;
+	                  Node lastNode = cfg.getLast();
 	                  Node n = new Node(lineNumber);
-	                  last.addEdge(n);
-	               }
-	            } else if(line.contains("while")) {
-	               if(complexPredicate) {
-	                  
-	               } else {
-	                  
-	               }
-	            } else if(line.contains("do")){
-	               if(complexPredicate) {
-                     
-                  } else {
-                     
-                  }
-	            } else if(line.contains("else")){
-	               if(!action.peek().ifNode) {
+	                  lastNode.addEdge(n);
 	                  /*
-	                   * We have encountered an else node but the last action
-	                   * wasn't 'if'.  Time to bail out.  This code shouldn't
-	                   * be necessary and might be removed at a later time.
-	                   * UNNECESSARY_EDGE_CASE 
-	                  */
-	                  throw new TokenMismatchException("Line Number:"+lineNumber
-	                        +"\nread in else, found not if\n");
+	                   * Here we only update the node list and not the stack
+	                   * because the stack points to the true statement, and
+	                   * these additional nodes are still part of it.  Putting
+	                   * the nodes into the stack would significantly change
+	                   * the CFG.
+	                   */
+	                  cfg.addLast(n);
 	               }
-	               /*
-	                * Since we have a matching if statement, we can process the
-	                * else clause
-	                */
-	               Node lastAction=action.pop();
-	               Node elseAction=new Node(lineNumber);
-	               //Create an edge from the if to this else.
-	               lastAction.edges.add(lastAction.lineNumber+","+lineNumber);
-	               elseAction.simple=true;
-	               /*
-	                * Add the else node to the list of nodes.  This might
-	                * create an excessive amount of nodes.  If it does then
-	                * I will add rules to take care of that at a later time.
-	                */
-	               cfg.addLast(elseAction); 
-	            }
 	         } else {
 	            /*
 	             * If the node list is empty, populate it, otherwise form
@@ -155,8 +132,6 @@ public class Main {
 	         }
 	      }
 	   }
-	   catch(TokenMismatchException e){
-	      e.printStackTrace();
 	   }
 	   catch(Exception e) {
 	      e.printStackTrace();
