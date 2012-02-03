@@ -1,0 +1,4 @@
+The idea is, the linked list is the total list of nodes with the last node being what 
+new next node should connect to.  The stack is kept to create proper links back, such
+when processing the else section or when it is at the end of the loop and needs to 
+loop back.
