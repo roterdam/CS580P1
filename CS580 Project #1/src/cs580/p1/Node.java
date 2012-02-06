@@ -7,6 +7,13 @@ package cs580.p1;
 import java.util.LinkedList;
 
 final class Node {
+   //The various constants express the type the node could be.
+   public static int  SIMPLE_NODE=0,
+		   			    IF_NODE=1,
+		   			    WHILE_NODE=2,
+		   			    DO_NODE=3,
+		   			    RETURN_NODE=4;
+   
    int                lineNumber     = -1;
    /*
     * Simple nodes are statement nodes.
@@ -14,10 +21,7 @@ final class Node {
     * predicateCount denotes the total number of comparisons that are being made
     * in the control structure.
     */
-   boolean            simple         = true, 
-                      ifNode         = false, 
-                      whileNode      = false,
-                      doNode         = false;
+   short		          type = 0;
    // Zero indexed.
    int                predicateCount = 0;
    /*
