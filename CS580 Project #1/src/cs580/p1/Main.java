@@ -15,7 +15,7 @@ public class Main {
 	public static void main(String[] arg) {
 	   //Prompt the user for the file to be parsed.
 	   Scanner stdin = new Scanner(System.in);
-	   System.out.print("\nWhat is the file name (user full path)? ");
+	   System.out.print("\nWhat is the file name (use full path)? ");
 	   String fileName=stdin.nextLine();
 	   
 	   //Open up the file.
@@ -29,8 +29,8 @@ public class Main {
 	   }
 	   
 	   //Declarations for the parsing.
-	   //TODO: Add section for "return"
-	   String regex=".*(if|while|do).*",line=null;
+	   //TODO: Double check that we are matching for all of the require controls statements.
+	   String regex=".*(if|while|do|\\{|return|for).*",line=null;
 	   int lineNumber=0;
 	   //cfg will store all of the nodes generated from parsing.
 	   LinkedList<Node> cfg = new LinkedList<Node>();
@@ -40,103 +40,71 @@ public class Main {
 	    * for the various control flow objects.  This should hopefully simplify
 	    * nesting situations.
        */
-	   Stack<Node> action = new Stack<Node>();
+	   Stack<Node> lastControlStatement = new Stack<Node>();
 	   
-	   try {
-	      while((line=fin.readLine())!=null) {
-	         //LineNumber != line number.  I know....
-	         //TODO: Make lineNumber variable clearer.
-	         lineNumber++;
-	         //Check to see if the current line has a control command.
-	         //TODO: Deal with {,}
-	         if(line.matches(regex)) {
-	            /*
-	             * If there isn't a match then split will return the whole
-	             * string in an array of a single element.
-	             * This makes the assumption that the testing statement doesn't
-	             * break to multiple lines.
-	             * TODO: Allow multi-line testing statements (within reason).
-	             */
-	            int totalNumberOfPredicates=line.split("(\\&\\&|\\|\\|)").length;
-	            
-	            //There is a match with the regular expression.  But which?
-	            //TODO: Squash this down to a single case since node differentiation is the only difference between the cases.
-	            if(line.contains("if")) {
-	                  /*
-	                   * Generate as many nodes as needed to fulfill the number
-	                   * of comparisons in the encountered predicate.
-	                   * TODO: Collapse this into just a single case.
-	                   * TODO: update else to deal with complex predicates
-	                   * TODO: changing to numbers should be easy and allow for more than 2 comparisons.
-	                   */
-	               Node last = cfg.getLast();
-                  Node newNode = new Node(lineNumber);
-                  newNode.simple=false;
-                  newNode.ifNode=true;
+      try {
+         while((line=fin.readLine())!=null) {
+            //LineNumber != line number.  I know....
+            //TODO: Make lineNumber variable clearer.
+            lineNumber++;
+            int totalNumberOfPredicates=line.split("(\\&\\&|\\|\\|)").length;
+            if(line.matches(regex)) {
+               //TODO: regex matches.
+            } else {
+               /*
+                * Since we don't have a control statement we need to update
+                * last node based off of a few rules.
+                */
+               if(lastControlStatement.isEmpty()) {
+                  if(cfg.isEmpty()) {
+                     //Empty list, time to populate it with the first statement
+                     Node newNode= new Node(lineNumber);
+                     newNode.type=Node.SIMPLE_NODE;
+                  }
+                  else { //CFG is empty
+                     /*
+                      * So the stack is empty and the list isn't. I will assume
+                      * that the last entry in the list is a simple node.
+                      */
+                     cfg.getLast().lastLineNumber=lineNumber;
+                  }
+               }
+               else {//lastControlStatement.isEmpty
                   /*
-                   * To make sure that the control statement is equivalent
-                   * to what is in the code, we record the total number of
-                   * comparisons and will use that number to add edges to
-                   * the else-node if it exists (D1) or to the node that
-                   * follows the if (D0).
+                   * So the stack isn't empty, and thus neither is the list.
+                   * We need to see if the last node in the list is simple or
+                   * not.
                    */
-                  newNode.predicateCount=totalNumberOfPredicates;
-                  
-                  //Add a link going from the past node to the new node.
-                  last.addEdge(newNode);
-
-                  cfg.addLast(newNode);
-                  action.push(newNode);
-                  
-	               for(int nodeNumber=1; 
-	                     nodeNumber<totalNumberOfPredicates; ++nodeNumber) {
-	                  lineNumber++;
-	                  Node lastNode = cfg.getLast();
-	                  Node n = new Node(lineNumber);
-	                  lastNode.addEdge(n);
-	                  /*
-	                   * Here we only update the node list and not the stack
-	                   * because the stack points to the true statement, and
-	                   * these additional nodes are still part of it.  Putting
-	                   * the nodes into the stack would significantly change
-	                   * the CFG.
-	                   */
-	                  cfg.addLast(n);
-	               }
-	         } else {
-	            /*
-	             * If the node list is empty, populate it, otherwise form
-	             * proper links between the last element in the node list and 
-	             * the current line number.
-	             * Note: if the previous element is a predicate statement then
-	             * we need to generate a new node, otherwise we will just lump
-	             * the statement nodes together.
-	            */
-	            if(cfg.size()==0) {
-	               Node n = new Node(lineNumber);
-	               n.simple=true;
-	               cfg.add(n);
-	            }
-	            else {
-	               //Non-empty list, but we have an element in the list already
-	               if(cfg.getLast().simple) {
-	                  //non-predicate last node, update the line number
-	                 cfg.getLast().lineNumber=lineNumber; 
-	               } else {
-	                  //predicate last node
-	                  if(action.isEmpty()){
-	                     //Last item on the stack is 
-	                  }
-	               }
-	            }
-	         }
-	      }
-	   }
-	   }
-	   catch(Exception e) {
-	      e.printStackTrace();
-	      System.exit(-1);
-	   }
-	   
+                  if(cfg.getLast().type==Node.SIMPLE_NODE){
+                     //Update "P1" to include the currently read line.
+                     cfg.getLast().lastLineNumber=lineNumber;
+                  }
+                  else {
+                     /*
+                      * Since the last node is for a control statement, we need
+                      * to create a new "P1" node, link it to the last node in
+                      * the list, and finally make it the last node in the
+                      * list.
+                      * 
+                      * We don't link it directly to the top of the stack
+                      * because that node may not actually be the last node in
+                      * the list.  This would happen when the last control
+                      * statement had multiple predicates to evaluate. If in 
+                      * fact this is not the case, then the last node in the 
+                      * list will equal to the top node in the stack.
+                      */
+                     Node newNode = new Node(lineNumber),
+                          listNode = cfg.getLast();
+                     newNode.type=Node.SIMPLE_NODE;
+                     listNode.addEdge(newNode);
+                     cfg.addLast(newNode);
+                  }//End of if-else statement for simple last cfg node.
+               }//End of the if-else statement for empty stack.
+            }//End of the if-else statement that checks for regex matches
+         }//End of the while loop
+      } catch (IOException e) {
+         // TODO Auto-generated catch block
+         e.printStackTrace();
+      }
 	}
 }

@@ -14,14 +14,15 @@ final class Node {
 		   			    DO_NODE=3,
 		   			    RETURN_NODE=4;
    
-   int                lineNumber     = -1;
+   int                firstLineNumber     = -1,
+                      lastLineNumber      = -1;
    /*
     * Simple nodes are statement nodes.
     * 
     * predicateCount denotes the total number of comparisons that are being made
     * in the control structure.
     */
-   short		          type = 0;
+   int		          type = 0;
    // Zero indexed.
    int                predicateCount = 0;
    /*
@@ -29,14 +30,13 @@ final class Node {
     * node to all of the nodes in the edge list.
     */
    LinkedList<Node> edges          = new LinkedList<Node>();
-   Node               previous       = null;
    /**
     * Constructor.
     * 
     * @param lineNumber
     */
    public Node(int lineNumber) {
-      this.lineNumber = lineNumber;
+      firstLineNumber = lastLineNumber = lineNumber;
    }
    /**
     * Adds the passed Node object to the current objects edge list.
