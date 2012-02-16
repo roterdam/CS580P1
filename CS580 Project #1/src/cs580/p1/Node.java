@@ -8,7 +8,8 @@ import java.util.LinkedList;
 
 final class Node {
    //The various constants express the type the node could be.
-   public static int  SIMPLE_NODE=0,
+   public static final int  
+                      SIMPLE_NODE=0,
 		   			    IF_NODE=1,
 		   			    WHILE_NODE=2,
 		   			    DO_NODE=3,

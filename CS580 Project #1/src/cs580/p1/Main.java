@@ -32,15 +32,6 @@ public class Main {
 	   //TODO: Double check that we are matching for all of the require controls statements.
 	   String regex=".*(if|while|do|\\{|return|for).*",line=null;
 	   int lineNumber=0;
-	   //cfg will store all of the nodes generated from parsing.
-	   LinkedList<Node> cfg = new LinkedList<Node>();
-	   /*
-	    * The stack will hold the last non-completed predicate node,
-	    * with the hope that this can be used to make the correct connections
-	    * for the various control flow objects.  This should hopefully simplify
-	    * nesting situations.
-       */
-	   Stack<Node> lastControlStatement = new Stack<Node>();
 	   
       try {
          while((line=fin.readLine())!=null) {
