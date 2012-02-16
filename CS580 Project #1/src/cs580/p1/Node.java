@@ -13,7 +13,8 @@ final class Node {
 		   			    IF_NODE=1,
 		   			    WHILE_NODE=2,
 		   			    DO_NODE=3,
-		   			    RETURN_NODE=4;
+		   			    RETURN_NODE=4,
+		   			    DUMMY_NODE=5;
    
    int                firstLineNumber     = -1,
                       lastLineNumber      = -1;
