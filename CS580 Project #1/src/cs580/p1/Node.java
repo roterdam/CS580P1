@@ -45,7 +45,15 @@ final class Node {
     * 
     * @param towards
     */
-   public void addEdge(Node towards){
-      edges.addLast(towards);
+   public boolean addEdge(Node towards){
+      /* Current behavior is to add it to the end of the list, however, if this
+       * implementation is later changed, then it will be necessary to make
+       * sure that nodes are being added to the end of the list.
+       */
+      return edges.add(towards);
+   }
+   public boolean removeEdge(Node nodeToBeRemoved){
+      //There really shouldn't be multiple links going to the same node.
+      return edges.removeLastOccurrence(nodeToBeRemoved);
    }
 }

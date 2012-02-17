@@ -2,10 +2,18 @@ package cs580.p1;
 
 import java.util.LinkedList;
 import java.util.Stack;
-
+/**
+ * 
+ * @author Michael J. Ballard
+ * 
+ * Purpose: TODO
+ * 
+ * Assumptions: TODO
+ *
+ */
 public class ControlFlowGraph {
    //What we will be using to parse against.
-   String regex = ".*(if|while|do|\\{|return|for).*";
+   String regex = ".*(if|else|while|do|\\}|return|for).*";
    //graph will store all of the nodes generated from parsing.
    LinkedList<Node> graph = new LinkedList<Node>();
    /*
@@ -24,7 +32,49 @@ public class ControlFlowGraph {
     */
    public boolean parse(String line, int lineNumber) {
       if(line.matches(regex)){
-         
+         //So we have a match, but which?
+         if(line.contains("if")){
+            /* The convention will be to assume that the first connection in
+             * the if structure will be for the 'then' section, and the second
+             * connection will be the else section.  It may be necessary to 
+             * check lines ahead to make sure that the structure is correct.
+             * TODO: Remove this assumption.
+             */
+            Node struct = generateStructure(Node.IF_NODE,lineNumber);
+            lastControlStatement.push(struct);
+            if(graph.isEmpty()) graph.add(struct);
+            else {
+               switch(graph.getLast().type){
+               case Node.DUMMY_NODE:
+                  Node last=graph.removeLast();
+                  if(graph.isEmpty()) graph.add(struct);
+                  else {
+                     graph.getLast().removeEdge(last);
+                     graph.getLast().addEdge(struct);
+                     
+                  }
+                  break;
+               case Node.SIMPLE_NODE:
+                  graph.getLast().addEdge(struct);
+                  graph.addLast(struct);
+                  break;
+               default:
+                  System.out.println("\nERROR.\n\tWhen adding if-structure to"+
+                  		" the graph.  The graph was not empty and the last" +
+                  		"node was not a dummy node nor a procedure node." +
+                  		"\nNode Type: "+graph.getLast().type+" line:"+
+                  		graph.getLast().lastLineNumber);
+                  System.exit(-1);
+               }
+            }
+         } else if(line.contains("while")){
+            
+         } else if(line.contains("do")){
+            
+         } else if(line.contains("else")){
+            
+         }
+            
       }
       else {
        /*
@@ -47,7 +97,9 @@ public class ControlFlowGraph {
                last.firstLineNumber=last.lastLineNumber=lineNumber;
             }
             else {
-               
+               Node head = generateStructure(Node.SIMPLE_NODE,lineNumber);
+               graph.getLast().addEdge(head);
+               graph.addLast(head);
             }
          }
       }
