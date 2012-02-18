@@ -18,6 +18,7 @@ final class Node {
    
    int                firstLineNumber     = -1,
                       lastLineNumber      = -1;
+   Node               exitNode=null;
    /*
     * Simple nodes are statement nodes.
     * 
@@ -55,5 +56,67 @@ final class Node {
    public boolean removeEdge(Node nodeToBeRemoved){
       //There really shouldn't be multiple links going to the same node.
       return edges.removeLastOccurrence(nodeToBeRemoved);
+   }
+   public boolean resetNode(int newNodeType){
+      if(newNodeType>=Node.DUMMY_NODE) return false;
+      this.edges.clear(); //Dangerous
+      this.type=-5;
+      Node replacement=ControlFlowGraph.generateStructure(newNodeType, 
+            this.firstLineNumber,this.lastLineNumber);
+      this.edges=replacement.edges;
+      
+      return false;
+   }
+   public void setExit(Node n){
+      //TODO: FINISH
+      if(this.type!=Node.IF_NODE && this.type!=Node.SIMPLE_NODE){
+         if(!edges.isEmpty()) edges.remove(0);
+         edges.add(0,n);
+         exitNode=n;
+      }
+      else if(this.type==Node.IF_NODE) {
+         
+      }else if(this.type==Node.SIMPLE_NODE) {
+         
+      }
+   }
+   //TODO: Broken concept
+   public boolean replaceEdge(int edgeLocation, Node replacementNode){
+      boolean success=true;
+      if(edges.isEmpty() || edgeLocation>edges.size()) success=false;
+      else {
+         edges.remove(edgeLocation);
+         edges.add(edgeLocation,replacementNode);
+      }
+      return success;
+   }
+   //TODO: public boolean sequence(Node seq) {
+   
+   //TODO: Finish
+   public boolean nest(Node nest) {
+      boolean success=true;
+      switch(type){
+         case IF_NODE:
+            edges.remove(1); //Remove the true-branch.
+            edges.add(1,nest);//Replace the true-branch.
+            nest.setExit(this.exitNode);//Re-link the exit node.
+            break;
+         case WHILE_NODE:
+            edges.remove(1);
+            edges.add(1,nest);
+            nest.setExit(this); //Gotta look it back to the control statement.
+            break;
+         case DO_NODE:
+            //I don't like do-loops.
+            break;
+         case SIMPLE_NODE:
+            System.err.println("Uhh...You can't nest Simple Nodes....");
+            success=false;
+            break;
+         default:
+            //OH..uhh..how did I..er?
+            //TODO: Handle default case.
+      }
+      return success;
    }
 }

@@ -10,6 +10,7 @@ import java.util.Stack;
  * 
  * Assumptions: TODO
  *
+ *TODO: document all of the structures for magic numbers
  */
 public class ControlFlowGraph {
    //What we will be using to parse against.
@@ -28,89 +29,43 @@ public class ControlFlowGraph {
     * parse - Generates a control flow graph line by line.
     * @param line - String to be parsed.
     * @param lineNumber - lineNumber will be used when creating the nodes.
-    * @return returns true if parsing the line was successful.  False otherwise.
+    * @return returns true if parsing the line was successful. False otherwise.
     */
    public boolean parse(String line, int lineNumber) {
-      if(line.matches(regex)){
-         //So we have a match, but which?
-         if(line.contains("if")){
-            /* The convention will be to assume that the first connection in
-             * the if structure will be for the 'then' section, and the second
-             * connection will be the else section.  It may be necessary to 
-             * check lines ahead to make sure that the structure is correct.
-             * TODO: Remove this assumption.
-             */
-            Node struct = generateStructure(Node.IF_NODE,lineNumber);
-            lastControlStatement.push(struct);
-            if(graph.isEmpty()) graph.add(struct);
-            else {
-               switch(graph.getLast().type){
-               case Node.DUMMY_NODE:
-                  Node last=graph.removeLast();
-                  if(graph.isEmpty()) graph.add(struct);
-                  else {
-                     graph.getLast().removeEdge(last);
-                     graph.getLast().addEdge(struct);
-                     
-                  }
-                  break;
-               case Node.SIMPLE_NODE:
-                  graph.getLast().addEdge(struct);
-                  graph.addLast(struct);
-                  break;
-               default:
-                  System.out.println("\nERROR.\n\tWhen adding if-structure to"+
-                  		" the graph.  The graph was not empty and the last" +
-                  		"node was not a dummy node nor a procedure node." +
-                  		"\nNode Type: "+graph.getLast().type+" line:"+
-                  		graph.getLast().lastLineNumber);
-                  System.exit(-1);
-               }
-            }
-         } else if(line.contains("while")){
-            
-         } else if(line.contains("do")){
-            
-         } else if(line.contains("else")){
-            
-         }
-            
-      }
-      else {
-       /*
-        * The passed string is a procedure and not a control statement, so we
-        * need to either update the last node in the graph (if it is P1),  
-        * create a P1 and link it properly, or if the last node is a dummy
-        * then we should change the node to the P1 type.
-        */
-         if(graph.isEmpty()){
-            Node top=this.generateStructure(Node.SIMPLE_NODE, lineNumber);
-            graph.addLast(top);
+      boolean correctParse=true;
+      String str = line.toLowerCase();
+      //TODO: Parsing stuff.
+      if(!lastControlStatement.isEmpty()) {
+         //Got something on the stack, MDMAZING!
+         Node stack=lastControlStatement.peek();
+         if(stack.type==Node.SIMPLE_NODE||stack.type==Node.DUMMY_NODE) {
+            //TODO: Finish
          }
          else {
-            Node last=graph.getLast();
-            if(last.type==Node.SIMPLE_NODE){
-               last.lastLineNumber=lineNumber;
-            }
-            else if(last.type==Node.DUMMY_NODE){
-               last.type=Node.SIMPLE_NODE;
-               last.firstLineNumber=last.lastLineNumber=lineNumber;
-            }
-            else {
-               Node head = generateStructure(Node.SIMPLE_NODE,lineNumber);
-               graph.getLast().addEdge(head);
-               graph.addLast(head);
-            }
+            Node struct = generateStructure(whichCtrlStmt(str),lineNumber);
+            stack.nest(struct);
+            lastControlStatement.push(struct);
+            //TODO: finish
          }
       }
-      return false;
+      return correctParse;
    }
+   
+   private int whichCtrlStmt(String line){
+      int returnVal=Node.SIMPLE_NODE;
+      if(line.contains("if")) returnVal=Node.IF_NODE;
+      else if(line.contains("do")) returnVal=Node.DO_NODE;
+      else if(line.contains("while")) returnVal=Node.WHILE_NODE;
+      else if(line.contains("return")) returnVal=Node.RETURN_NODE;
+      return returnVal;
+   }
+   
    /**
     * generateStructure creates a prime structure: D1,D2,D3,P1
     * @param nodeType - int that should correspond to the values available in the node class.
     * @return returns a graph structure of the passed prime number.  Invalid numbers return null.
     */
-   public Node generateStructure(int nodeType, int lineNumber) {
+   public static Node generateStructure(int nodeType, int lineNumber) {
       Node head=new Node(nodeType);
       head.firstLineNumber=head.lastLineNumber=lineNumber;
       switch(nodeType){
@@ -145,6 +100,19 @@ public class ControlFlowGraph {
             head=null;
       }
       return head;
+   }
+   /**
+    * Same as the previous generateStructure.  Allows for the first and last
+    * lines to be different.
+    * @param nodeType
+    * @param firstLine
+    * @param lastLine
+    * @return
+    */
+   public static Node generateStructure(int nodeType, int firstLine, int lastLine){
+      Node n=generateStructure(nodeType,lastLine);
+      n.firstLineNumber=firstLine;
+      return n;
    }
     //TODO: FIX ME PROPER!
    public String toString() {
