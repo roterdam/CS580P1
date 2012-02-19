@@ -36,7 +36,7 @@ public class ControlFlowGraph {
       String str = line.toLowerCase();
       //TODO: Parsing stuff.
       if(!lastControlStatement.isEmpty()) {
-         //Got something on the stack, MDMAZING!
+         //Got something on the stack.
          Node stack=lastControlStatement.peek();
          if(stack.type==Node.SIMPLE_NODE||stack.type==Node.DUMMY_NODE) {
             //TODO: Finish

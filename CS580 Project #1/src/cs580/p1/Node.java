@@ -75,9 +75,25 @@ final class Node {
          exitNode=n;
       }
       else if(this.type==Node.IF_NODE) {
-         
+         if(edges.size()>2) {
+            //This is an if-then-else node.
+            Node left=edges.get(1);
+            Node right=edges.get(2);
+            left.setExit(n);
+            right.setExit(n);
+         }
+         else {
+            Node left=edges.get(1);
+            left.setExit(n);
+            edges.remove(0);
+            edges.add(0,n);
+         }
       }else if(this.type==Node.SIMPLE_NODE) {
-         
+         if(edges.isEmpty()) edges.add(n);
+         else {
+            edges.remove(0);
+            edges.add(0,n);
+         }
       }
    }
    //TODO: Broken concept
@@ -104,7 +120,7 @@ final class Node {
          case WHILE_NODE:
             edges.remove(1);
             edges.add(1,nest);
-            nest.setExit(this); //Gotta look it back to the control statement.
+            nest.setExit(this); //Gotta link it back to the control statement.
             break;
          case DO_NODE:
             //I don't like do-loops.
@@ -114,8 +130,11 @@ final class Node {
             success=false;
             break;
          default:
-            //OH..uhh..how did I..er?
-            //TODO: Handle default case.
+            //Should actually never hit the default case.
+            System.err.println("Error when trying to nest.\n\tCurrent node is"+
+            		"Is: "+this.type+" and cannot be nested with a passed node" +
+            				" of type: "+nest);
+            System.exit(-2);
       }
       return success;
    }
