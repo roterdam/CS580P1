@@ -97,8 +97,6 @@ final class Node {
             }
             break;
          case Node.WHILE_NODE:
-            edges.remove(0);
-            edges.add(0,n);
             exitNode=n;
             break;
          default: 
@@ -140,8 +138,8 @@ final class Node {
             nest.setExit(this.exitNode);//Re-link the exit node.
             break;
          case WHILE_NODE:
-            edges.remove(1);
-            edges.add(1,nest);
+            edges.remove(0);
+            edges.add(0,nest);
             nest.setExit(this); //Gotta link it back to the control statement.
             break;
          case DO_NODE:
