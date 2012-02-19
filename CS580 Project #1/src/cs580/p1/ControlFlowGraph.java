@@ -9,7 +9,12 @@ import java.util.Stack;
  * Purpose: TODO
  * 
  * Assumptions: TODO
- *
+ *    1. The code to be processed should only have a single return statement
+ *    2. The code should be easily compiled by a C compiler, assuming said
+ *       compiler didn't have a preprocessor.
+ * From above, it should be clearly understood that this code has not been
+ * written to handle ill-structured code.
+ * 
  *TODO: document all of the structures for magic numbers
  */
 public class ControlFlowGraph {
@@ -25,7 +30,7 @@ public class ControlFlowGraph {
     * nesting situations.
     */
    Stack<Node> lastControlStatement = new Stack<Node>();
-   
+   boolean keepParsing=true;
    /**
     * parse - Generates a control flow graph line by line.
     * @param line - String to be parsed.
@@ -33,6 +38,7 @@ public class ControlFlowGraph {
     * @return returns true if parsing the line was successful. False otherwise.
     */
    public boolean parse(String line, int lineNumber) {
+      if(!keepParsing) return false;
       boolean correctParse=true;
       String str = line.toLowerCase();
       //TODO: Parsing stuff.
@@ -42,8 +48,15 @@ public class ControlFlowGraph {
          case Node.IF_NODE:
             break;
          case Node.RETURN_NODE:
+            /*
+             * Since we have hit the return statement, and by the assumptions,
+             * it is finally time to end this 
+             */
+            graph.get(0).setExit(generateStructure(Node.DUMMY_NODE,lineNumber));
+            keepParsing=false;
             break;
          case Node.WHILE_NODE:
+            //TODO
             break;
          default:
             //Check to see if we have an end of control statement token.
@@ -76,49 +89,51 @@ public class ControlFlowGraph {
    }
    
    private void process(Stack<Node> stack, int nodeType, int lineNumber, String line) {
+      Node struct=generateStructure(nodeType,lineNumber);
       if(!stack.isEmpty()){
          Node lastAct=stack.peek();
          switch(lastAct.type){
-            case Node.DO_NODE:
-               //TODO: Finish if stack==do
-               break;
             case Node.DUMMY_NODE:
-               //TODO: Finish if stack==dummy
+               //TODO: DEBUG
+               /* Since we have a dummy node on top of the stack, we can then
+                * assume that the action that needs to be performed is
+                * sequencing.
+                */
+               lastAct=stack.pop();
+               /* Remember, we said that dummy nodes will point to the last
+                * completed statement on the stack. */
+               lastAct=lastAct.edges.get(0);
+               lastAct.setExit(struct);
+               stack.push(struct);
                break;
             case Node.IF_NODE:
                //TODO: Finish if stack==if, fix for else
-               Node struct=generateStructure(nodeType,lineNumber);
-               lastAct.setExit(struct);
-               
+               if(nodeType==Node.ELSE_NODE){
+                  //Redefine struct since it is NULL.
+               }else {
+                  lastAct.setExit(struct);
+               }
+               stack.push(struct);
                break;
             case Node.SIMPLE_NODE:
-               //TODO: Finish if stack==simple
+               //TODO: RE-Code && DEBUG
+               Node P1=stack.pop();
+               P1.setExit(struct);
+               graph.add(P1);
+               stack.push(struct);
                break;
+            case Node.DO_NODE: //Commit: Merged Do/While
             case Node.WHILE_NODE:
-               //TODO: Finish if stack==while
+               //TODO: DEBUG
+               lastAct.nesting(struct);
+               stack.push(struct);
                break;
             default:
          }//End Switch
       }//End If
       else {
-         Node struct = generateStructure(nodeType,lineNumber);
          stack.push(struct);
       }//End Else
-      
-      /*
-      if(!lastControlStatement.isEmpty()) {
-         //Got something on the stack.
-         Node stacker=lastControlStatement.peek();
-         if(stacker.type==Node.SIMPLE_NODE) {
-            //TODO: Finish
-         }
-         else {
-            Node struct = generateStructure(whichCtrlStmt(""),lineNumber);
-            stacker.nest(struct);
-            lastControlStatement.push(struct);
-            //TODO: finish
-         }
-      }*/
    }//End Funct
    
    private int whichCtrlStmt(String line){
@@ -142,7 +157,7 @@ public class ControlFlowGraph {
          case Node.IF_NODE:
             Node thenChild=new Node(Node.SIMPLE_NODE);
             Node elseChild=new Node(Node.SIMPLE_NODE);
-            Node ifExit=new Node(Node.DUMMY_NODE);
+            Node ifExit=null;
             head.addEdge(thenChild); //Then
             head.addEdge(elseChild); //Else - Pruned if necessary
             thenChild.addEdge(ifExit);
@@ -152,15 +167,13 @@ public class ControlFlowGraph {
             Node bodyChild=new Node(Node.SIMPLE_NODE);
             head.addEdge(bodyChild);
             bodyChild.addEdge(head);
-            Node whileExit=new Node(Node.DUMMY_NODE);
-            head.addEdge(whileExit);
+            head.setExit(null);
             break;
          case Node.DO_NODE:
-            Node doExit=new Node(Node.DUMMY_NODE);
             Node doBody=new Node(Node.SIMPLE_NODE);
             head.addEdge(doBody);
             doBody.addEdge(head);
-            doBody.addEdge(doExit);
+            doBody.addEdge(null);
             break;
          case Node.SIMPLE_NODE:
          case Node.RETURN_NODE:

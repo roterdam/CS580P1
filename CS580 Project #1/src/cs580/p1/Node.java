@@ -14,7 +14,8 @@ final class Node {
 		   			    WHILE_NODE=2,
 		   			    DO_NODE=3,
 		   			    RETURN_NODE=4,
-		   			    DUMMY_NODE=5;
+		   			    DUMMY_NODE=5,
+		   			    ELSE_NODE=6; //This is potentially bad coding, we'll see
    
    int                firstLineNumber     = -1,
                       lastLineNumber      = -1;
