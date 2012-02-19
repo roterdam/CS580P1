@@ -57,6 +57,7 @@ final class Node {
       //There really shouldn't be multiple links going to the same node.
       return edges.removeLastOccurrence(nodeToBeRemoved);
    }
+   //TODO: Do I really need this?
    public boolean resetNode(int newNodeType){
       if(newNodeType>=Node.DUMMY_NODE) return false;
       this.edges.clear(); //Dangerous
@@ -68,32 +69,53 @@ final class Node {
       return false;
    }
    public void setExit(Node n){
-      //TODO: FINISH
-      if(this.type!=Node.IF_NODE && this.type!=Node.SIMPLE_NODE){
-         if(!edges.isEmpty()) edges.remove(0);
-         edges.add(0,n);
-         exitNode=n;
-      }
-      else if(this.type==Node.IF_NODE) {
-         if(edges.size()>2) {
-            //This is an if-then-else node.
-            Node left=edges.get(1);
-            Node right=edges.get(2);
-            left.setExit(n);
-            right.setExit(n);
-         }
-         else {
-            Node left=edges.get(1);
-            left.setExit(n);
+      //TODO: BUGTEST
+      switch(this.type) {
+         case Node.DO_NODE:
+            /* Since this is a Do structure, we actually need to move to the 
+             * next node in line to do the modifications as that is where the
+             * actual control happens, the while();
+             */
+            Node control = this.edges.get(0);
+            control.exitNode=n;
+            control.edges.remove(0);
+            control.edges.add(0,n);
+            break;
+         case Node.IF_NODE:
+            if(edges.size()>2) {
+               //This is an if-then-else node.
+               Node left=edges.get(1);
+               Node right=edges.get(2);
+               left.setExit(n);
+               right.setExit(n);
+            }
+            else {//Just a regular if-then node.
+               Node left=edges.get(1);
+               left.setExit(n);
+               edges.remove(0);
+               edges.add(0,n);
+            }
+            break;
+         case Node.WHILE_NODE:
             edges.remove(0);
             edges.add(0,n);
-         }
-      }else if(this.type==Node.SIMPLE_NODE) {
-         if(edges.isEmpty()) edges.add(n);
-         else {
-            edges.remove(0);
-            edges.add(0,n);
-         }
+            exitNode=n;
+            break;
+         default: 
+               /*
+                * The only things that should fall in here are: Simple, Dummy,
+                * and Return.  Realistically, Dummy and return nodes should 
+                * never be processed through here, as that means there has been
+                * a mistake and this requires a error message and a rage quit.
+                */
+            if(this.type==Node.DUMMY_NODE||this.type==Node.RETURN_NODE){
+               String err=(this.type==Node.DUMMY_NODE?"Dummy":"Return");
+               System.out.println("Error: "+err+".setExit().\n\tYou shouldn't"+
+               		" be calling setExit on these nodes.  Bailing out.");
+               System.exit(-3);
+            }
+            //Now that we got that out of the way, lets handle the Simple.
+            this.exitNode=n;
       }
    }
    //TODO: Broken concept
@@ -108,9 +130,9 @@ final class Node {
    }
    //TODO: public boolean sequence(Node seq) {
    
-   //TODO: Finish
-   public boolean nest(Node nest) {
-      boolean success=true;
+   //TODO: DEBUGGING
+   public boolean nesting(Node nest) {
+      boolean success=true;//Assume we will be successful until otherwise.
       switch(type){
          case IF_NODE:
             edges.remove(1); //Remove the true-branch.
@@ -123,7 +145,18 @@ final class Node {
             nest.setExit(this); //Gotta link it back to the control statement.
             break;
          case DO_NODE:
-            //I don't like do-loops.
+            /*
+             * Kind of the awkward turtle of the bunch.  What needs to happen
+             * here is we need to point the exit of this new structure to the
+             * control node of the do loop. But we can't discard the head of 
+             * the do-loop as things may be pointing to it. So, we are going
+             * to link the head of the do (making it a dummy node if you will)
+             * to this new structure.
+             */
+            Node control=this.edges.get(0);
+            this.edges.remove(0);
+            this.edges.add(0,nest);
+            nest.setExit(control);
             break;
          case SIMPLE_NODE:
             System.err.println("Uhh...You can't nest Simple Nodes....");
@@ -137,5 +170,14 @@ final class Node {
             System.exit(-2);
       }
       return success;
+   }
+   
+   //TODO: toStringBuilder();
+   public StringBuilder toStringBuilder() {
+      return null;
+   }
+   
+   public String toString() {
+      return this.toStringBuilder().toString();
    }
 }
