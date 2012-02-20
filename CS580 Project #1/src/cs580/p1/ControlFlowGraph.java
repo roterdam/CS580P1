@@ -17,6 +17,7 @@ import java.util.Stack;
  *TODO: document all of the structures for magic numbers
  */
 public class ControlFlowGraph {
+   private static final boolean DEBUG=true;
    //What we will be using to parse against.
    String regex = ".*(if|else|while|do|return|for).*";
    String endControlToken="}";
@@ -40,6 +41,10 @@ public class ControlFlowGraph {
    //TODO: Fix if to handle else
    //TODO: Allow for single (on the next line) if,else,while (currently assuming {} are being used
    public boolean parse(String line, int lineNumber) {
+      if(DEBUG) {
+         System.out.println("\nDEBUG: parse(\""+line+"\","+lineNumber+") was called.");
+         System.out.println("keepParsing="+keepParsing);
+      }
       if(!keepParsing) return false; //Abort parsing as per assumption.
       boolean correctParse=true;
       String str = line.toLowerCase();
@@ -50,6 +55,10 @@ public class ControlFlowGraph {
          case Node.DO_NODE:
          case Node.IF_NODE:
          case Node.WHILE_NODE:
+            if(DEBUG) {
+               System.out.println("Passed through the switchs statement, and determined it to be a control.");
+               System.out.println("calling process("+parsedStatement+","+lineNumber+","+str+")");
+            }
             process(parsedStatement,lineNumber,str);
             break;
          case Node.RETURN_NODE:
@@ -61,6 +70,8 @@ public class ControlFlowGraph {
             keepParsing=false;
             break;
          default:
+            if(DEBUG) 
+               System.out.println("default case.");
             /*
              * So we need to check to see if the line contains an end of
              * statement token, ie '}'.  If it does then the control structure
@@ -68,6 +79,7 @@ public class ControlFlowGraph {
              * line is just a procedure.
              */
             if(str.contains(endControlToken)) {
+               if(DEBUG) System.out.println("Statement was an endControlToken");
                /* Whatever it was, should now be done.  The only case that this
                 * would be false is if there is nothing on the stack, which
                 * would mean that we went through a block and it contained only
@@ -75,6 +87,7 @@ public class ControlFlowGraph {
                 */
                if(lastControlStatement.isEmpty()) break; //Okay to discard.
                else {
+                  if(DEBUG) System.out.println("performing closure.");
                   /* Since the stack has elements, we know that the top has
                    * finished processing.  However, it could be the case that
                    * the we have a sequence of elements.  So What we are going
@@ -102,6 +115,7 @@ public class ControlFlowGraph {
                }
             } else {
                 //The line passed is a procedure node
+               if(DEBUG) System.out.println("Determined it to be a procedure node, calling process("+Node.SIMPLE_NODE+","+lineNumber+","+str+")");
                process(Node.SIMPLE_NODE,lineNumber,str);
             }
       }//End of Switch
@@ -109,9 +123,14 @@ public class ControlFlowGraph {
    }
    
    private void process(int nodeType, int lineNumber, String line) {
+      if(DEBUG){
+         System.out.println("DEBUG: process("+nodeType+","+lineNumber+","+line+") was called.");
+      }
       Node struct=generateStructure(nodeType,lineNumber);
       if(!lastControlStatement.isEmpty()){
+         if(DEBUG) System.out.println("lastControlStatement.isEmpty()==false");
          Node lastAct=lastControlStatement.peek();
+         if(DEBUG) System.out.println("switching on: "+lastAct.type);
          switch(lastAct.type){
             case Node.IF_NODE:
                //TODO: Finish if stack==if, fix for else
@@ -150,6 +169,8 @@ public class ControlFlowGraph {
          }//End Switch
       }//End If
       else {
+         if(DEBUG) System.out.println("lastControlAction.isEmpty()==true.\nPushing structure on the stack, and setting graph.");
+         graph=struct;
          lastControlStatement.push(struct);
       }//End Else
    }//End Funct
@@ -215,13 +236,8 @@ public class ControlFlowGraph {
       n.firstLineNumber=firstLine;
       return n;
    }
-    //TODO: FIX ME PROPER!
+   //TODO: DEBUG:Make sure this is the correct info.
    public String toString() {
-      StringBuilder output = new StringBuilder();
-      for(Node n : graph.edges) {
-         output.append(n.toString());
-      }
-      output.append(graph.exitNode.toString());
-      return output.toString();
+      return graph.toString();
    }
 }

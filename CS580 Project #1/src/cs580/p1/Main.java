@@ -13,7 +13,10 @@ import java.util.Scanner;
 public class Main {
 	public static void main(String[] arg) {
 	   //Testing.
+	   System.out.println(" ");
 	   ControlFlowGraph cfg = new ControlFlowGraph();
 	   cfg.parse("Test", 0);
+	   cfg.parse("Test", 0);
+	   System.out.println(cfg.toString());
 	}
 }

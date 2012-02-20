@@ -7,6 +7,9 @@ package cs580.p1;
 import java.util.LinkedList;
 
 final class Node {
+   private static LinkedList<Node> visited=new LinkedList<Node>();
+   private static long nodeNumber=1;
+   private long UUID=-1;
    //The various constants express the type the node could be.
    public static final int  
                       SIMPLE_NODE=0,
@@ -41,6 +44,8 @@ final class Node {
     */
    public Node(int lineNumber) {
       firstLineNumber = lastLineNumber = lineNumber;
+      UUID=nodeNumber;
+      nodeNumber++;
    }
    /**
     * Adds the passed Node object to the current objects edge list.
@@ -172,11 +177,23 @@ final class Node {
    }
    
    //TODO: toStringBuilder();
-   public StringBuilder toStringBuilder() {
-      return null;
+   private StringBuilder toStringBuilder() {
+      if(visited.contains(this)) return null; //Already processed.
+      visited.add(this);
+      StringBuilder buffer = new StringBuilder();
+      buffer.append("\nNode: "+UUID+" lines: "+this.firstLineNumber+" to "+
+               lastLineNumber+"\n");
+      for(Node n : edges)
+         buffer.append("("+UUID+","+n.UUID+") ");
+      if(exitNode!=null)buffer.append("("+UUID+","+exitNode.UUID+")\n");
+      for(Node n: edges) 
+         buffer.append(n.toStringBuilder());
+      return buffer;
    }
    
    public String toString() {
-      return this.toStringBuilder().toString();
+      String toString =this.toStringBuilder().toString();
+      visited.clear();
+      return toString;
    }
 }
