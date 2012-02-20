@@ -1,6 +1,5 @@
 package cs580.p1;
 
-import java.util.LinkedList;
 import java.util.Stack;
 /**
  * 
@@ -21,8 +20,8 @@ public class ControlFlowGraph {
    //What we will be using to parse against.
    String regex = ".*(if|else|while|do|return|for).*";
    String endControlToken="}";
-   //graph will store all of the nodes generated from parsing.
-   LinkedList<Node> graph = new LinkedList<Node>();
+   //Just a pointer to the graph.
+   Node graph = null;
    /*
     * The stack will hold the last non-completed predicate node,
     * with the hope that this can be used to make the correct connections
@@ -37,29 +36,37 @@ public class ControlFlowGraph {
     * @param lineNumber - lineNumber will be used when creating the nodes.
     * @return returns true if parsing the line was successful. False otherwise.
     */
+   //TODO: Handle multiple predicates (at least 2)
+   //TODO: Fix if to handle else
+   //TODO: Allow for single (on the next line) if,else,while (currently assuming {} are being used
    public boolean parse(String line, int lineNumber) {
-      if(!keepParsing) return false;
+      if(!keepParsing) return false; //Abort parsing as per assumption.
       boolean correctParse=true;
       String str = line.toLowerCase();
       //TODO: Parsing stuff.
-      switch(whichCtrlStmt(str)) {
+      int parsedStatement=whichCtrlStmt(str);
+      //TODO: Maybe turn this switch statement into nested if/else?
+      switch(parsedStatement) {
          case Node.DO_NODE:
-            break;
          case Node.IF_NODE:
+         case Node.WHILE_NODE:
+            process(parsedStatement,lineNumber,str);
             break;
          case Node.RETURN_NODE:
             /*
              * Since we have hit the return statement, and by the assumptions,
              * it is finally time to end this 
              */
-            graph.get(0).setExit(generateStructure(Node.DUMMY_NODE,lineNumber));
+            graph.setExit(generateStructure(Node.DUMMY_NODE,lineNumber));
             keepParsing=false;
             break;
-         case Node.WHILE_NODE:
-            //TODO
-            break;
          default:
-            //Check to see if we have an end of control statement token.
+            /*
+             * So we need to check to see if the line contains an end of
+             * statement token, ie '}'.  If it does then the control structure
+             * is done and can be popped off, otherwise we just assume that the
+             * line is just a procedure.
+             */
             if(str.contains(endControlToken)) {
                /* Whatever it was, should now be done.  The only case that this
                 * would be false is if there is nothing on the stack, which
@@ -68,44 +75,44 @@ public class ControlFlowGraph {
                 */
                if(lastControlStatement.isEmpty()) break; //Okay to discard.
                else {
-                  /* So the last control block has finished and should be
-                   * removed from the stack, but we want to keep a ghost there
-                   * so if there something that does come after (a sequence) we
-                   * can keep it linked correctly.  For this, we will create a
-                   * dummy node, whose edge list will point to the current
-                   * control node.
+                  /* Since the stack has elements, we know that the top has
+                   * finished processing.  However, it could be the case that
+                   * the we have a sequence of elements.  So What we are going
+                   * to do is create a dummy node that points to this node
+                   * finished node. During processing if we find that
+                   * there is a dummy node on the stack, we can link to it thus
+                   * creating the sequence. 
+                   * 
+                   * The only time this isn't (shouldn't) be the case is when 
+                   * we are processing the first element.  At which point the 
+                   * stack would be empty and the graph reference would also be
+                   * empty.
                    */
-                  Node dummy=generateStructure(Node.DUMMY_NODE,-1,-1);
-                  dummy.addEdge(lastControlStatement.pop().exitNode);
+                  Node dummy=generateStructure(Node.DUMMY_NODE,-1);
+                  dummy.exitNode=lastControlStatement.pop();
                   lastControlStatement.push(dummy);
+                  if(lastControlStatement.isEmpty() && graph==null) {
+                     graph=dummy.exitNode;
+                  }
+                  else { //TODO: Prove and remove.
+                     //This should never ever happen.
+                     System.out.println("ERROR: empty stack && graph!=null");
+                     System.exit(-5);
+                  }
                }
             } else {
-               //the line passed is a procedure node.
-               //Call a function that modifies the stack in some manner as to process this currently line.
-               process(lastControlStatement,Node.SIMPLE_NODE,lineNumber,str);
+                //The line passed is a procedure node
+               process(Node.SIMPLE_NODE,lineNumber,str);
             }
-      }
+      }//End of Switch
       return correctParse;
    }
    
-   private void process(Stack<Node> stack, int nodeType, int lineNumber, String line) {
+   private void process(int nodeType, int lineNumber, String line) {
       Node struct=generateStructure(nodeType,lineNumber);
-      if(!stack.isEmpty()){
-         Node lastAct=stack.peek();
+      if(!lastControlStatement.isEmpty()){
+         Node lastAct=lastControlStatement.peek();
          switch(lastAct.type){
-            case Node.DUMMY_NODE:
-               //TODO: DEBUG
-               /* Since we have a dummy node on top of the stack, we can then
-                * assume that the action that needs to be performed is
-                * sequencing.
-                */
-               lastAct=stack.pop();
-               /* Remember, we said that dummy nodes will point to the last
-                * completed statement on the stack. */
-               lastAct=lastAct.edges.get(0);
-               lastAct.setExit(struct);
-               stack.push(struct);
-               break;
             case Node.IF_NODE:
                //TODO: Finish if stack==if, fix for else
                if(nodeType==Node.ELSE_NODE){
@@ -113,26 +120,37 @@ public class ControlFlowGraph {
                }else {
                   lastAct.setExit(struct);
                }
-               stack.push(struct);
+               lastControlStatement.push(struct);
                break;
             case Node.SIMPLE_NODE:
-               //TODO: RE-Code && DEBUG
-               Node P1=stack.pop();
+               //TODO: DEBUG
+               Node P1=lastControlStatement.pop();
                P1.setExit(struct);
-               graph.add(P1);
-               stack.push(struct);
+               if(graph==null) graph=P1;
+               lastControlStatement.push(struct);
+               break;
+            case Node.DUMMY_NODE:
+               //Perform sequencing.
+               lastAct=lastControlStatement.pop();
+               lastAct.exitNode.setExit(struct);
+               lastControlStatement.push(struct);
                break;
             case Node.DO_NODE: //Commit: Merged Do/While
             case Node.WHILE_NODE:
                //TODO: DEBUG
                lastAct.nesting(struct);
-               stack.push(struct);
+               lastControlStatement.push(struct);
                break;
             default:
+               //The program should never flow into here.
+               System.out.println("ERROR: Processing.\n\tProcess(" +nodeType+
+                     ","+lineNumber+","+line+")\ntNode Type didn't match " +
+                     		"a specific type(IF/DO/WHILE/SIMPLE). Bailing out.");
+               System.exit(-4);
          }//End Switch
       }//End If
       else {
-         stack.push(struct);
+         lastControlStatement.push(struct);
       }//End Else
    }//End Funct
    
@@ -200,9 +218,10 @@ public class ControlFlowGraph {
     //TODO: FIX ME PROPER!
    public String toString() {
       StringBuilder output = new StringBuilder();
-      for(Node n : graph) {
+      for(Node n : graph.edges) {
          output.append(n.toString());
       }
+      output.append(graph.exitNode.toString());
       return output.toString();
    }
 }
