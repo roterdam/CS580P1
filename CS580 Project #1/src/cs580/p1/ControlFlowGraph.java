@@ -114,9 +114,18 @@ public class ControlFlowGraph {
                      		(lastControlStatement.peek()==null));
                   }//:~ End DEBUG
                   
+                  //ODD: If the node on top is a P1 then we double pop!
+                  Node stackPeek = lastControlStatement.peek();
+                  if(stackPeek.type==Node.SIMPLE_NODE||stackPeek.type==Node.DUMMY_NODE) lastControlStatement.pop();
+                  
+                  Node popped = lastControlStatement.pop();
+                  
                   //Are the edges dummy? If so, redo the linking.
-                  LinkedList<Node> edgeList=lastControlStatement.peek().edges;
+                  LinkedList<Node> edgeList=popped.edges;
+                  
+                  
                   if(DEBUG) System.out.println("edgeList.size(): "+edgeList.size());
+                  
                   for(int i=0;i<edgeList.size();i++) {
                      if(DEBUG) System.out.println("iteration: i="+i);
                      if(edgeList.get(i).type==Node.DUMMY_NODE) {
@@ -126,9 +135,14 @@ public class ControlFlowGraph {
                         edgeList.add(i,temp);
                      }
                   }
+                  
+                  if(DEBUG) System.out.println("Popping node: "+popped.UUID +
+                  		" of type: "+popped.type);
+                  
                   Node dummy=generateStructure(Node.DUMMY_NODE,-1);
-                  dummy.exitNode=lastControlStatement.pop();
+                  dummy.exitNode=popped;
                   lastControlStatement.push(dummy);
+                  if(DEBUG) System.out.println("Dummy node("+dummy.UUID+") was created and push onto the stack.");
                }
             } else {
                 //The line passed is a procedure node
@@ -170,23 +184,38 @@ public class ControlFlowGraph {
                break;
             case Node.SIMPLE_NODE:
                //TODO: DEBUG
-               if(DEBUG)System.out.println("CASE: SIMPLE_NODE");
+               if(DEBUG)System.out.println("CASE: SIMPLE_NODE on stack");
                //Completely forgot the case of P1;P1. Woops.
                if(nodeType==Node.SIMPLE_NODE){
                   if(DEBUG) System.out.println("nodeType==SIMPLE.\nUpdating" +
                   		"lastAct.lastLineNumber to: "+lineNumber);
                   lastAct.lastLineNumber=lineNumber;
-               } else{
-                  if(DEBUG) System.out.println("nodeType!=SIMPLE: Executing else.");
-                  Node P1=lastControlStatement.pop();
-                  P1.setExit(struct);
-                  if(graph==null) graph=P1;
-                  lastControlStatement.push(struct);
+               } else {
+                  if(DEBUG) System.out.println("nodeType (of passed node) !=SIMPLE: Executing else.");
+                  Node P1=lastControlStatement.pop(); //Take P1 off of the stack
+                  struct.setExit(P1.exitNode);
+                  P1.setExit(struct); //link P1 to the new structure
+                  if(graph==null) graph=P1; //If we start with a P1 then we need this.
+                  lastControlStatement.push(struct);//push the new struct onto the stack
+                  if(DEBUG) {
+                     System.out.println("\nStack Dump:");
+                     for(Node n : lastControlStatement){
+                        System.out.println("Node "+n.UUID+" type: "+n.type);
+                     }
                   }
+               }
                break;
             case Node.DUMMY_NODE:
                //TODO: Perform sequencing.
                lastAct=lastControlStatement.pop().exitNode;
+               if(lastAct.type==Node.DUMMY_NODE) {
+                  System.out.println("\n\nSo we have a dummy node on the stack\n" +
+                  		"and so we popped it off are now looking at the\n" +
+                  		"exitNode refernce. And here is our problem, it turns\n" +
+                  		"out that this dummy node is referencing another dummy\n" +
+                  		"and we can't have that now can we?");
+                  System.exit(-7);
+               }
                if(DEBUG) {
                   System.out.println("\tPop Node: "+lastAct.UUID+" of type: " +
                   		lastAct.type+" Lines: "+
@@ -201,6 +230,7 @@ public class ControlFlowGraph {
             case Node.DO_NODE: //Commit: Merged Do/While
             case Node.WHILE_NODE:
                //TODO: DEBUG
+               if(DEBUG) System.out.println("calling nesting");
                lastAct.nesting(struct);
                lastControlStatement.push(struct);
                break;
@@ -261,6 +291,7 @@ public class ControlFlowGraph {
             break;
          case Node.SIMPLE_NODE:
             head.type=Node.SIMPLE_NODE;
+            head.exitNode=generateStructure(Node.DUMMY_NODE,-1);
             break;
          case Node.RETURN_NODE:
             head.type=Node.RETURN_NODE;

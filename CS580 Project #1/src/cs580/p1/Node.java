@@ -76,7 +76,7 @@ final class Node {
       return false;
    }
    public void setExit(Node n){
-      if(DEBUG) System.out.println("DEBUG: setExit was called.");
+      if(DEBUG) System.out.println("DEBUG: setExit was called. Setting Node: "+UUID+" exit to node: "+n.UUID);
       //TODO: BUGTEST
       switch(this.type) {
          case Node.DO_NODE:
@@ -126,6 +126,8 @@ final class Node {
                System.exit(-3);
             }
             //Now that we got that out of the way, lets handle the Simple.
+            if(DEBUG) System.out.println("Not a Dummy nor a return either, " +
+            		"linking node: "+this.UUID+" to node: "+n.UUID);
             this.exitNode=n;
       }
    }
