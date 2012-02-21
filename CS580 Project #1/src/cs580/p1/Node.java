@@ -7,9 +7,10 @@ package cs580.p1;
 import java.util.LinkedList;
 
 final class Node {
+   protected static final boolean DEBUG=true;
    private static LinkedList<Node> visited=new LinkedList<Node>();
    private static long nodeNumber=1;
-   private long UUID=-1;
+   protected long UUID=-1;
    //The various constants express the type the node could be.
    public static final int  
                       SIMPLE_NODE=0,
@@ -67,7 +68,7 @@ final class Node {
    public boolean resetNode(int newNodeType){
       if(newNodeType>=Node.DUMMY_NODE) return false;
       this.edges.clear(); //Dangerous
-      this.type=-5;
+      this.type=-1;
       Node replacement=ControlFlowGraph.generateStructure(newNodeType, 
             this.firstLineNumber,this.lastLineNumber);
       this.edges=replacement.edges;
@@ -75,6 +76,7 @@ final class Node {
       return false;
    }
    public void setExit(Node n){
+      if(DEBUG) System.out.println("DEBUG: setExit was called.");
       //TODO: BUGTEST
       switch(this.type) {
          case Node.DO_NODE:
@@ -88,6 +90,7 @@ final class Node {
             control.edges.add(0,n);
             break;
          case Node.IF_NODE:
+            if(DEBUG) System.out.println("NODE:"+this.UUID+" type is IF");
             if(edges.size()>2) {
                //This is an if-then-else node.
                Node left=edges.get(1);
@@ -96,10 +99,11 @@ final class Node {
                right.setExit(n);
             }
             else {//Just a regular if-then node.
-               Node left=edges.get(1);
+               if(DEBUG) System.out.println("Calling left node to set exit.");
+               Node left=edges.get(0);
                left.setExit(n);
-               edges.remove(0);
-               edges.add(0,n);
+               if(DEBUG) System.out.println("Setting my own exit.");
+               this.exitNode=n;
             }
             break;
          case Node.WHILE_NODE:
@@ -132,15 +136,16 @@ final class Node {
       }
       return success;
    }
-   //TODO: public boolean sequence(Node seq) {
    
    //TODO: DEBUGGING
    public boolean nesting(Node nest) {
+      if(DEBUG) System.out.println("DEBUG: Nesting Called.");
       boolean success=true;//Assume we will be successful until otherwise.
       switch(type){
          case IF_NODE:
-            edges.remove(1); //Remove the true-branch.
-            edges.add(1,nest);//Replace the true-branch.
+            if(DEBUG) System.out.println("My type is IF");
+            edges.remove(0); //Remove the true-branch.
+            edges.add(0,nest);//Replace the true-branch.
             nest.setExit(this.exitNode);//Re-link the exit node.
             break;
          case WHILE_NODE:
@@ -178,14 +183,14 @@ final class Node {
    
    //TODO: toStringBuilder();
    private StringBuilder toStringBuilder() {
-      if(visited.contains(this)) return null; //Already processed.
+      if(visited.contains(this)) return new StringBuilder(""); //Already processed.
       visited.add(this);
       StringBuilder buffer = new StringBuilder();
       buffer.append("\nNode: "+UUID+" lines: "+this.firstLineNumber+" to "+
-               lastLineNumber+"\n");
+               lastLineNumber+" type: "+type+"\n");
       for(Node n : edges)
          buffer.append("("+UUID+","+n.UUID+") ");
-      if(exitNode!=null)buffer.append("("+UUID+","+exitNode.UUID+")\n");
+      if(exitNode!=null)buffer.append("E:("+UUID+","+exitNode.UUID+")\n");
       for(Node n: edges) 
          buffer.append(n.toStringBuilder());
       return buffer;

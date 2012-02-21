@@ -1,5 +1,6 @@
 package cs580.p1;
 
+import java.util.LinkedList;
 import java.util.Stack;
 /**
  * 
@@ -17,7 +18,7 @@ import java.util.Stack;
  *TODO: document all of the structures for magic numbers
  */
 public class ControlFlowGraph {
-   private static final boolean DEBUG=true;
+   protected static final boolean DEBUG=true; //where is a #DEFINE or -D when you need one?
    //What we will be using to parse against.
    String regex = ".*(if|else|while|do|return|for).*";
    String endControlToken="}";
@@ -48,8 +49,8 @@ public class ControlFlowGraph {
       if(!keepParsing) return false; //Abort parsing as per assumption.
       boolean correctParse=true;
       String str = line.toLowerCase();
-      //TODO: Parsing stuff.
       int parsedStatement=whichCtrlStmt(str);
+      if(DEBUG) System.out.println("whichCtrlStmt(\""+str+"\") was called and returned: "+parsedStatement);
       //TODO: Maybe turn this switch statement into nested if/else?
       switch(parsedStatement) {
          case Node.DO_NODE:
@@ -62,10 +63,6 @@ public class ControlFlowGraph {
             process(parsedStatement,lineNumber,str);
             break;
          case Node.RETURN_NODE:
-            /*
-             * Since we have hit the return statement, and by the assumptions,
-             * it is finally time to end this 
-             */
             graph.setExit(generateStructure(Node.DUMMY_NODE,lineNumber));
             keepParsing=false;
             break;
@@ -91,31 +88,53 @@ public class ControlFlowGraph {
                   /* Since the stack has elements, we know that the top has
                    * finished processing.  However, it could be the case that
                    * the we have a sequence of elements.  So What we are going
-                   * to do is create a dummy node that points to this node
-                   * finished node. During processing if we find that
-                   * there is a dummy node on the stack, we can link to it thus
-                   * creating the sequence. 
-                   * 
-                   * The only time this isn't (shouldn't) be the case is when 
-                   * we are processing the first element.  At which point the 
-                   * stack would be empty and the graph reference would also be
-                   * empty.
+                   * to do is create a dummy node that points to this finished
+                   * node. During processing if we find that there is a dummy 
+                   * node on the stack, we can link to it thus creating the 
+                   * sequence. 
                    */
+                  /* 
+                   * TODO: What is happening with the error is that the dummy 
+                   * node is being generated is being replaced, hence the 2->4.
+                   * So what I need to do is when closing, check to see if 
+                   * there is a dummy node as one of the edges.  If it is then,
+                   * I need to remove this dummy node and restore the 
+                   * structure.  I may also need to update the exit node path 
+                   * to the proper exit node path (this is with respect to the 
+                   * parent structure handling the nested structures).
+                   */
+                  if(DEBUG) {
+                     System.out.println("Stack Dump\nSize="+
+                           lastControlStatement.size());
+                     for(Node n : lastControlStatement) {
+                        System.out.println("\tNode UUID: "+n.UUID+", type: "+
+                              n.type);
+                     }
+                     System.out.println("lastControlStatement.peek()==null?" +
+                     		(lastControlStatement.peek()==null));
+                  }//:~ End DEBUG
+                  
+                  //Are the edges dummy? If so, redo the linking.
+                  LinkedList<Node> edgeList=lastControlStatement.peek().edges;
+                  if(DEBUG) System.out.println("edgeList.size(): "+edgeList.size());
+                  for(int i=0;i<edgeList.size();i++) {
+                     if(DEBUG) System.out.println("iteration: i="+i);
+                     if(edgeList.get(i).type==Node.DUMMY_NODE) {
+                        if(DEBUG) System.out.println("\tNode is a dummy node, performing relinking.");
+                        Node temp = edgeList.get(i).exitNode;
+                        edgeList.remove(i);
+                        edgeList.add(i,temp);
+                     }
+                  }
                   Node dummy=generateStructure(Node.DUMMY_NODE,-1);
                   dummy.exitNode=lastControlStatement.pop();
                   lastControlStatement.push(dummy);
-                  if(lastControlStatement.isEmpty() && graph==null) {
-                     graph=dummy.exitNode;
-                  }
-                  else { //TODO: Prove and remove.
-                     //This should never ever happen.
-                     System.out.println("ERROR: empty stack && graph!=null");
-                     System.exit(-5);
-                  }
                }
             } else {
                 //The line passed is a procedure node
-               if(DEBUG) System.out.println("Determined it to be a procedure node, calling process("+Node.SIMPLE_NODE+","+lineNumber+","+str+")");
+               if(DEBUG) System.out.println("Determined it to be a procedure" +
+               		" node, calling process("+Node.SIMPLE_NODE+","+lineNumber+
+               		","+str+")");
                process(Node.SIMPLE_NODE,lineNumber,str);
             }
       }//End of Switch
@@ -128,28 +147,45 @@ public class ControlFlowGraph {
       }
       Node struct=generateStructure(nodeType,lineNumber);
       if(!lastControlStatement.isEmpty()){
-         if(DEBUG) System.out.println("lastControlStatement.isEmpty()==false");
          Node lastAct=lastControlStatement.peek();
-         if(DEBUG) System.out.println("switching on: "+lastAct.type);
+         if(DEBUG) {
+            System.out.println("lastControlStatement.isEmpty()==false");
+            System.out.println("switching on: "+lastAct.type);
+         }
          switch(lastAct.type){
             case Node.IF_NODE:
                //TODO: Finish if stack==if, fix for else
                if(nodeType==Node.ELSE_NODE){
                   //Redefine struct since it is NULL.
                }else {
-                  lastAct.setExit(struct);
+                  if(DEBUG) {
+                     System.out.println("nodeType!=ELSE\nPushing struct on stack.");
+                     System.out.println("struct, UUID: "+struct.UUID+", type: "+struct.type);
+                  }
+                  //struct.setExit(lastAct.exitNode);
+                  //lastAct.setExit(struct);
+                  lastAct.nesting(struct);
                }
                lastControlStatement.push(struct);
                break;
             case Node.SIMPLE_NODE:
                //TODO: DEBUG
-               Node P1=lastControlStatement.pop();
-               P1.setExit(struct);
-               if(graph==null) graph=P1;
-               lastControlStatement.push(struct);
+               if(DEBUG)System.out.println("CASE: SIMPLE_NODE");
+               //Completely forgot the case of P1;P1. Woops.
+               if(nodeType==Node.SIMPLE_NODE){
+                  if(DEBUG) System.out.println("nodeType==SIMPLE.\nUpdating" +
+                  		"lastAct.lastLineNumber to: "+lineNumber);
+                  lastAct.lastLineNumber=lineNumber;
+               } else{
+                  if(DEBUG) System.out.println("nodeType!=SIMPLE: Executing else.");
+                  Node P1=lastControlStatement.pop();
+                  P1.setExit(struct);
+                  if(graph==null) graph=P1;
+                  lastControlStatement.push(struct);
+                  }
                break;
             case Node.DUMMY_NODE:
-               //Perform sequencing.
+               //TODO: Perform sequencing.
                lastAct=lastControlStatement.pop();
                lastAct.exitNode.setExit(struct);
                lastControlStatement.push(struct);
@@ -194,29 +230,35 @@ public class ControlFlowGraph {
       head.firstLineNumber=head.lastLineNumber=lineNumber;
       switch(nodeType){
          case Node.IF_NODE:
+            head.type=Node.IF_NODE;
             Node thenChild=new Node(Node.SIMPLE_NODE);
-            Node elseChild=new Node(Node.SIMPLE_NODE);
-            Node ifExit=null;
+            Node ifExit=new Node(Node.DUMMY_NODE);
+            head.exitNode=ifExit;
             head.addEdge(thenChild); //Then
-            head.addEdge(elseChild); //Else - Pruned if necessary
-            thenChild.addEdge(ifExit);
-            elseChild.addEdge(ifExit);
+            thenChild.exitNode=ifExit;
             break;
          case Node.WHILE_NODE:
+            head.type=Node.WHILE_NODE;
             Node bodyChild=new Node(Node.SIMPLE_NODE);
             head.addEdge(bodyChild);
             bodyChild.addEdge(head);
-            head.setExit(null);
+            head.setExit(generateStructure(Node.DUMMY_NODE,-1));
             break;
          case Node.DO_NODE:
+            head.type=Node.DO_NODE;
             Node doBody=new Node(Node.SIMPLE_NODE);
             head.addEdge(doBody);
             doBody.addEdge(head);
             doBody.addEdge(null);
             break;
          case Node.SIMPLE_NODE:
+            head.type=Node.SIMPLE_NODE;
+            break;
          case Node.RETURN_NODE:
-            //Don't need to do anything.
+            head.type=Node.RETURN_NODE;
+            break;
+         case Node.DUMMY_NODE:
+            head.type=Node.DUMMY_NODE;
             break;
          default:
             head=null;

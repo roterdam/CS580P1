@@ -11,7 +11,8 @@ if(( K+J) != (M + F)) {
    G= M*N;
 }
 else
-{ F= M-N;
+{ 
+   F= M-N;
    G= M+N;
 }
 do{
