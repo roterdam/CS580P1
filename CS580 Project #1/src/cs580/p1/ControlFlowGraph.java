@@ -186,8 +186,16 @@ public class ControlFlowGraph {
                break;
             case Node.DUMMY_NODE:
                //TODO: Perform sequencing.
-               lastAct=lastControlStatement.pop();
-               lastAct.exitNode.setExit(struct);
+               lastAct=lastControlStatement.pop().exitNode;
+               if(DEBUG) {
+                  System.out.println("\tPop Node: "+lastAct.UUID+" of type: " +
+                  		lastAct.type+" Lines: "+
+                        lastAct.firstLineNumber+" to "+lastAct.lastLineNumber+
+                        " and linking it to Node: "+struct.UUID+" of type: " +
+                        		struct.type+" lines: "+
+                        struct.firstLineNumber+" to "+struct.lastLineNumber);
+               }
+               lastAct.setExit(struct);
                lastControlStatement.push(struct);
                break;
             case Node.DO_NODE: //Commit: Merged Do/While

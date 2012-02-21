@@ -99,17 +99,20 @@ final class Node {
                right.setExit(n);
             }
             else {//Just a regular if-then node.
+               if(DEBUG) System.out.println("Setting "+this.UUID+" exit to "+n.UUID);
+               this.exitNode=n;
                if(DEBUG) System.out.println("Calling left node to set exit.");
                Node left=edges.get(0);
                left.setExit(n);
-               if(DEBUG) System.out.println("Setting my own exit.");
-               this.exitNode=n;
             }
             break;
          case Node.WHILE_NODE:
             exitNode=n;
             break;
          default: 
+            if(DEBUG) {
+               System.out.println("Through the switch statement, node: "+UUID+" type:"+type);
+            }
                /*
                 * The only things that should fall in here are: Simple, Dummy,
                 * and Return.  Realistically, Dummy and return nodes should 
@@ -183,16 +186,25 @@ final class Node {
    
    //TODO: toStringBuilder();
    private StringBuilder toStringBuilder() {
-      if(visited.contains(this)) return new StringBuilder(""); //Already processed.
+      if(DEBUG) System.out.println("DEBUG: toStringBuilder() was called");
+      if(visited.contains(this)) {
+         if(DEBUG) System.out.println("Node: "+UUID+" was already visited, returning...");
+         return new StringBuilder(""); //Already processed.
+      }
+      if(DEBUG) System.out.println("Adding Node: "+UUID+" to the visited list.");
       visited.add(this);
       StringBuilder buffer = new StringBuilder();
+      
       buffer.append("\nNode: "+UUID+" lines: "+this.firstLineNumber+" to "+
                lastLineNumber+" type: "+type+"\n");
-      for(Node n : edges)
-         buffer.append("("+UUID+","+n.UUID+") ");
+      
+      for(Node n : edges) buffer.append("("+UUID+","+n.UUID+") ");
+      
       if(exitNode!=null)buffer.append("E:("+UUID+","+exitNode.UUID+")\n");
+      else if(DEBUG) buffer.append("E: (DEBUG) NULL\n");
       for(Node n: edges) 
          buffer.append(n.toStringBuilder());
+      if(exitNode!=null) buffer.append(exitNode.toStringBuilder());
       return buffer;
    }
    
