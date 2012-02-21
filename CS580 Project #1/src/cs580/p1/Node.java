@@ -23,7 +23,8 @@ final class Node {
    
    int                firstLineNumber     = -1,
                       lastLineNumber      = -1;
-   Node               exitNode=null;
+   Node               exitNode=null,
+                      controlNode=null;
    /*
     * Simple nodes are statement nodes.
     * 
@@ -84,10 +85,7 @@ final class Node {
              * next node in line to do the modifications as that is where the
              * actual control happens, the while();
              */
-            Node control = this.edges.get(0);
-            control.exitNode=n;
-            control.edges.remove(0);
-            control.edges.add(0,n);
+            controlNode.setExit(n);
             break;
          case Node.IF_NODE:
             if(DEBUG) System.out.println("NODE:"+this.UUID+" type is IF");
@@ -144,7 +142,7 @@ final class Node {
    
    //TODO: DEBUGGING
    public boolean nesting(Node nest) {
-      if(DEBUG) System.out.println("DEBUG: Nesting Called.");
+      if(DEBUG) System.out.println("DEBUG: Nesting Called. I am: "+type);
       boolean success=true;//Assume we will be successful until otherwise.
       switch(type){
          case IF_NODE:
@@ -167,9 +165,13 @@ final class Node {
              * to link the head of the do (making it a dummy node if you will)
              * to this new structure.
              */
-            Node control=this.edges.get(0);
-            this.edges.remove(0);
-            this.edges.add(0,nest);
+            Node control=this.exitNode;
+            if(DEBUG) {
+               System.out.println("Linking this ("+UUID+","+this.firstLineNumber+","+this.lastLineNumber+")" +
+               		"to ("+nest.UUID+","+nest.firstLineNumber+","+nest.lastLineNumber+") and that to " +
+               				"("+control.UUID+","+control.firstLineNumber+","+control.lastLineNumber+")");
+            }
+            this.exitNode=nest;
             nest.setExit(control);
             break;
          case SIMPLE_NODE:
