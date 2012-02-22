@@ -205,12 +205,11 @@ final class Node {
       
       if(exitNode!=null && processElse==false)buffer.append("E:("+UUID+","+exitNode.UUID+")\n");
       else if(DEBUG) buffer.append("E: (DEBUG) NULL\n");
-      if(edges.isEmpty()) return buffer;
-      buffer.append(edges.get(0).toStringBuilder());
-      if(processElse) buffer.append(edges.get(1).toStringBuilder());
-      if(DEBUG) System.out.println("stmt-Node: "+UUID+" exitNode="+(exitNode==null)+", processElse="+processElse);
-      if(exitNode!=null && processElse) {
-         if(DEBUG) System.out.println("Node: "+UUID+" exitNode!=null, processElse==false");
+      if(!edges.isEmpty()) {
+         buffer.append(edges.get(0).toStringBuilder());
+         if(processElse) buffer.append(edges.get(1).toStringBuilder());
+      }
+      if(exitNode!=null && processElse==false) {
          buffer.append(exitNode.toStringBuilder());
       }
       return buffer;

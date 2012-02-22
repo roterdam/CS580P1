@@ -39,7 +39,6 @@ public class ControlFlowGraph {
     * @return returns true if parsing the line was successful. False otherwise.
     */
    //TODO: Handle multiple predicates (at least 2)
-   //TODO: Fix if to handle else
    //TODO: Allow for single (on the next line) if,else,while (currently assuming {} are being used
    public boolean parse(String line, int lineNumber) {
       if(DEBUG) {
@@ -186,7 +185,9 @@ public class ControlFlowGraph {
                   if(DEBUG) System.out.println("nodeType (of passed node) !=SIMPLE: Executing else.");
                   Node P1=lastControlStatement.pop(); //Take P1 off of the stack
                   struct.setExit(P1.exitNode);
+                  if(DEBUG) System.out.println("~~~~Calling setexit on the first P1 node.");
                   P1.setExit(struct); //link P1 to the new structure
+                  if(DEBUG) System.out.println("~~~~setExit ended on the first p1 node.");
                   if(graph==null) graph=P1; //If we start with a P1 then we need this.
                   lastControlStatement.push(struct);//push the new struct onto the stack
                   if(DEBUG) {
