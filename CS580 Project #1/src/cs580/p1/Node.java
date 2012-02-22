@@ -39,6 +39,8 @@ final class Node {
     * node to all of the nodes in the edge list.
     */
    LinkedList<Node> edges          = new LinkedList<Node>();
+   
+   boolean processElse=false; //Need for the if-else case.
    /**
     * Constructor.
     * 
@@ -61,10 +63,6 @@ final class Node {
        */
       return edges.add(towards);
    }
-   public boolean removeEdge(Node nodeToBeRemoved){
-      //There really shouldn't be multiple links going to the same node.
-      return edges.removeLastOccurrence(nodeToBeRemoved);
-   }
    //TODO: Do I really need this?
    public boolean resetNode(int newNodeType){
       if(newNodeType>=Node.DUMMY_NODE) return false;
@@ -78,7 +76,6 @@ final class Node {
    }
    public void setExit(Node n){
       if(DEBUG) System.out.println("DEBUG: setExit was called. Setting Node: "+UUID+" exit to node: "+n.UUID);
-      //TODO: BUGTEST
       switch(this.type) {
          case Node.DO_NODE:
             /* Since this is a Do structure, we actually need to move to the 
@@ -88,21 +85,24 @@ final class Node {
             controlNode.setExit(n);
             break;
          case Node.IF_NODE:
-            if(DEBUG) System.out.println("NODE:"+this.UUID+" type is IF");
-            if(edges.size()>2) {
+            if(DEBUG) System.out.println("NODE:"+this.UUID+" type is IF, edgeList.size()="+edges.size());
+            if(edges.size()==2) {
                //This is an if-then-else node.
-               Node left=edges.get(1);
-               Node right=edges.get(2);
+               Node left=edges.get(0);
+               Node right=edges.get(1);
+               if(DEBUG) System.out.println("left: "+left.UUID+" is relinking exit to node: "+n.UUID);
                left.setExit(n);
+               if(DEBUG) System.out.println("right: "+right.UUID+" is relinking exit to node: "+n.UUID);
                right.setExit(n);
+               if(DEBUG) System.out.println("setExit finished for IF type node: "+this.UUID);
             }
             else {//Just a regular if-then node.
                if(DEBUG) System.out.println("Setting "+this.UUID+" exit to "+n.UUID);
-               this.exitNode=n;
                if(DEBUG) System.out.println("Calling left node to set exit.");
                Node left=edges.get(0);
                left.setExit(n);
             }
+            this.exitNode=n;
             break;
          case Node.WHILE_NODE:
             exitNode=n;
@@ -129,27 +129,27 @@ final class Node {
             this.exitNode=n;
       }
    }
-   //TODO: Broken concept
-   public boolean replaceEdge(int edgeLocation, Node replacementNode){
-      boolean success=true;
-      if(edges.isEmpty() || edgeLocation>edges.size()) success=false;
-      else {
-         edges.remove(edgeLocation);
-         edges.add(edgeLocation,replacementNode);
-      }
-      return success;
-   }
-   
-   //TODO: DEBUGGING
+
    public boolean nesting(Node nest) {
       if(DEBUG) System.out.println("DEBUG: Nesting Called. I am: "+type);
       boolean success=true;//Assume we will be successful until otherwise.
       switch(type){
          case IF_NODE:
-            if(DEBUG) System.out.println("My type is IF");
-            edges.remove(0); //Remove the true-branch.
-            edges.add(0,nest);//Replace the true-branch.
-            nest.setExit(this.exitNode);//Re-link the exit node.
+            if(nest.type==Node.ELSE_NODE){
+               this.processElse=true;
+               edges.get(1).firstLineNumber=nest.firstLineNumber;
+               edges.get(1).lastLineNumber=nest.lastLineNumber;
+            } else if(this.processElse){ //Statements are being added to the else branch.
+               //exitNode=null;
+               edges.remove(1);
+               edges.add(1,nest);
+               nest.exitNode=this.exitNode; //TODO: FIXME
+            }
+            else {
+               edges.remove(0); //Remove the true-branch.
+               edges.add(0,nest);//Replace the true-branch.
+               nest.setExit(this.exitNode);//Re-link the exit node.               
+            }
             break;
          case WHILE_NODE:
             edges.remove(0);
@@ -188,7 +188,6 @@ final class Node {
       return success;
    }
    
-   //TODO: toStringBuilder();
    private StringBuilder toStringBuilder() {
       if(DEBUG) System.out.println("DEBUG: toStringBuilder() was called");
       if(visited.contains(this)) {
@@ -199,16 +198,21 @@ final class Node {
       visited.add(this);
       StringBuilder buffer = new StringBuilder();
       
-      buffer.append("\nNode: "+UUID+" lines: "+this.firstLineNumber+" to "+
-               lastLineNumber+" type: "+type+"\n");
+      buffer.append("\nNode: "+UUID+" lines: "+this.firstLineNumber+" to "+lastLineNumber+" type: "+type+"\n");
       
+      if(DEBUG) System.out.println("\tSize of edges: "+edges.size()+" exit==null?"+" "+(exitNode==null)+" processElse=?"+processElse);
       for(Node n : edges) buffer.append("("+UUID+","+n.UUID+") ");
       
-      if(exitNode!=null)buffer.append("E:("+UUID+","+exitNode.UUID+")\n");
+      if(exitNode!=null && processElse==false)buffer.append("E:("+UUID+","+exitNode.UUID+")\n");
       else if(DEBUG) buffer.append("E: (DEBUG) NULL\n");
-      for(Node n: edges) 
-         buffer.append(n.toStringBuilder());
-      if(exitNode!=null) buffer.append(exitNode.toStringBuilder());
+      if(edges.isEmpty()) return buffer;
+      buffer.append(edges.get(0).toStringBuilder());
+      if(processElse) buffer.append(edges.get(1).toStringBuilder());
+      if(DEBUG) System.out.println("stmt-Node: "+UUID+" exitNode="+(exitNode==null)+", processElse="+processElse);
+      if(exitNode!=null && processElse) {
+         if(DEBUG) System.out.println("Node: "+UUID+" exitNode!=null, processElse==false");
+         buffer.append(exitNode.toStringBuilder());
+      }
       return buffer;
    }
    

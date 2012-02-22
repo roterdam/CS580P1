@@ -56,8 +56,9 @@ public class ControlFlowGraph {
          case Node.DO_NODE:
          case Node.IF_NODE:
          case Node.WHILE_NODE:
+         case Node.ELSE_NODE:
             if(DEBUG) {
-               System.out.println("Passed through the switchs statement, and determined it to be a control.");
+               System.out.println("Passed through the switch statement, and determined it to be a control.");
                System.out.println("calling process("+parsedStatement+","+lineNumber+","+str+")");
             }
             process(parsedStatement,lineNumber,str);
@@ -165,17 +166,13 @@ public class ControlFlowGraph {
             case Node.IF_NODE:
                if(DEBUG) System.out.println("on stack: IF");
                //TODO: Finish if stack==if, fix for else
-               if(nodeType==Node.ELSE_NODE){
-                  //Redefine struct since it is NULL.
-               }else {
-                  if(DEBUG) {
-                     System.out.println("nodeType!=ELSE\nPushing struct on stack.");
-                     System.out.println("struct, UUID: "+struct.UUID+", type: "+struct.type);
-                  }
-                  //struct.setExit(lastAct.exitNode);
-                  //lastAct.setExit(struct);
-                  lastAct.nesting(struct);
+               if(DEBUG) {
+                  System.out.println("nodeType!=ELSE\nPushing struct on stack.");
+                  System.out.println("struct, UUID: "+struct.UUID+", type: "+struct.type);
                }
+               //struct.setExit(lastAct.exitNode);
+               //lastAct.setExit(struct);
+               lastAct.nesting(struct);
                lastControlStatement.push(struct);
                break;
             case Node.SIMPLE_NODE:
@@ -219,7 +216,13 @@ public class ControlFlowGraph {
                         		struct.type+" lines: "+
                         struct.firstLineNumber+" to "+struct.lastLineNumber);
                }
-               lastAct.setExit(struct);
+               if(struct.type==Node.ELSE_NODE){ //read in type: else, stack type: if
+                 lastAct.nesting(struct);
+                 struct=lastAct;
+               } else {
+                  if(DEBUG) System.out.println("lastAct: "+lastAct.UUID+","+lastAct.type+" calling setExit with parameter: "+struct.UUID);
+                  lastAct.setExit(struct);
+               }
                lastControlStatement.push(struct);
                break;
             case Node.DO_NODE:
@@ -256,6 +259,7 @@ public class ControlFlowGraph {
       int returnVal=-1;
       if(line.contains("if")) returnVal=Node.IF_NODE;
       else if(line.contains("do")) returnVal=Node.DO_NODE;
+      else if(line.contains("else")) returnVal=Node.ELSE_NODE;
       else if(line.contains("while") && !line.contains("}")) returnVal=Node.WHILE_NODE;
       else if(line.contains("return")) returnVal=Node.RETURN_NODE;
       return returnVal;
@@ -274,10 +278,14 @@ public class ControlFlowGraph {
          case Node.IF_NODE:
             head.type=Node.IF_NODE;
             Node thenChild=new Node(Node.SIMPLE_NODE);
+            Node elseChild=new Node(Node.SIMPLE_NODE);
             Node ifExit=new Node(Node.DUMMY_NODE);
             head.exitNode=ifExit;
-            head.addEdge(thenChild); //Then
+            head.addEdge(thenChild);
+            head.addEdge(elseChild);
             thenChild.exitNode=ifExit;
+            elseChild.exitNode=ifExit;
+            head.processElse=false;
             break;
          case Node.WHILE_NODE:
             head.type=Node.WHILE_NODE;
@@ -304,6 +312,9 @@ public class ControlFlowGraph {
          case Node.DUMMY_NODE:
             head.type=Node.DUMMY_NODE;
             break;
+         case Node.ELSE_NODE:
+            head.type=Node.ELSE_NODE;
+            break;
          default:
             head=null;
       }
@@ -323,8 +334,8 @@ public class ControlFlowGraph {
       n.firstLineNumber=firstLine;
       return n;
    }
-   //TODO: DEBUG:Make sure this is the correct info.
    public String toString() {
+      if(graph==null) return null;
       return graph.toString();
    }
 }
