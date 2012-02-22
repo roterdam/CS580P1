@@ -228,9 +228,10 @@ final class Node {
       if (DEBUG)
          System.out.println("\tSize of edges: " + edges.size() + " exit==null?"
                + " " + (exitNode == null) + " processElse=?" + processElse);
-      for (Node n : edges)
-         buffer.append("(" + UUID + "," + n.UUID + ") ");
-
+      if(!edges.isEmpty()){
+         if(edges.get(0)!=null) buffer.append("(" + UUID + "," + edges.get(0).UUID + ") ");
+         if(edges.size()==2 && processElse) buffer.append("(" + UUID + "," + edges.get(1).UUID + ") ");
+      }
       if (exitNode != null && processElse == false) buffer.append("E:(" + UUID
             + "," + exitNode.UUID + ")\n");
       else if (DEBUG) buffer.append("E: (DEBUG) NULL\n");
