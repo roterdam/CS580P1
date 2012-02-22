@@ -63,7 +63,18 @@ public class ControlFlowGraph {
             process(parsedStatement,lineNumber,str);
             break;
          case Node.RETURN_NODE:
-            graph.setExit(generateStructure(Node.DUMMY_NODE,lineNumber));
+            Node exit=generateStructure(Node.RETURN_NODE,lineNumber);
+            if(graph==null){
+               graph=exit;
+            }
+            else {
+               Node searcher=lastControlStatement.pop().exitNode; //Should be a dummy node here from the last closure.
+               for(; searcher.exitNode!=null && 
+                     searcher.exitNode.type!=Node.DUMMY_NODE;
+                     searcher=searcher.exitNode);
+                  searcher.setExit(exit);
+            }
+            
             keepParsing=false;
             break;
          default:
