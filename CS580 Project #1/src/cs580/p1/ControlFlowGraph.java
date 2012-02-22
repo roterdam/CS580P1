@@ -18,7 +18,7 @@ import java.util.Stack;
  */
 public class ControlFlowGraph {
    // where is a #DEFINE or -D when you need one?
-   protected static final boolean DEBUG                = true;
+   protected static final boolean DEBUG                = false;
    // What we will be using to parse against.
    String                         endControlToken      = "}";
    // Just a pointer to the graph.

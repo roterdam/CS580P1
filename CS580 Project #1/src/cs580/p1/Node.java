@@ -7,7 +7,7 @@ package cs580.p1;
 import java.util.LinkedList;
 
 final class Node {
-   protected static final boolean  DEBUG      = true;
+   protected static final boolean  DEBUG      = false;
    private static LinkedList<Node> visited    = new LinkedList<Node>();
    private static long             nodeNumber = 1;
    protected long                  UUID       = -1;
