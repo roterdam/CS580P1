@@ -14,13 +14,11 @@ import java.util.Stack;
  *       compiler didn't have a preprocessor.
  * From above, it should be clearly understood that this code has not been
  * written to handle ill-structured code.
- * 
- *TODO: document all of the structures for magic numbers
- */
+*/
 public class ControlFlowGraph {
-   protected static final boolean DEBUG=true; //where is a #DEFINE or -D when you need one?
+   //where is a #DEFINE or -D when you need one?
+   protected static final boolean DEBUG=true;
    //What we will be using to parse against.
-   String regex = ".*(if|else|while|do|return|for).*";
    String endControlToken="}";
    //Just a pointer to the graph.
    Node graph = null;
@@ -39,7 +37,9 @@ public class ControlFlowGraph {
     * @return returns true if parsing the line was successful. False otherwise.
     */
    //TODO: Handle multiple predicates (at least 2)
-   //TODO: Allow for single (on the next line) if,else,while (currently assuming {} are being used
+   /*Resolved, WONTFIX: Allow for single (on the next line) if,else,while 
+    * (currently assuming {} are being used)
+    */
    public boolean parse(String line, int lineNumber) {
       if(DEBUG) {
          System.out.println("\nDEBUG: parse(\""+line+"\","+lineNumber+") was called.");
@@ -49,16 +49,18 @@ public class ControlFlowGraph {
       boolean correctParse=true;
       String str = line.toLowerCase();
       int parsedStatement=whichCtrlStmt(str);
-      if(DEBUG) System.out.println("whichCtrlStmt(\""+str+"\") was called and returned: "+parsedStatement);
-      //TODO: Maybe turn this switch statement into nested if/else?
+      if(DEBUG) System.out.println("whichCtrlStmt(\""+str+"\") was called and"+
+      		" returned: "+parsedStatement);
       switch(parsedStatement) {
          case Node.DO_NODE:
          case Node.IF_NODE:
          case Node.WHILE_NODE:
          case Node.ELSE_NODE:
             if(DEBUG) {
-               System.out.println("Passed through the switch statement, and determined it to be a control.");
-               System.out.println("calling process("+parsedStatement+","+lineNumber+","+str+")");
+               System.out.println("Passed through the switch statement, and" +
+               		" determined it to be a control.");
+               System.out.println("calling process("+parsedStatement+","+
+               		lineNumber+","+str+")");
             }
             process(parsedStatement,lineNumber,str);
             break;
@@ -68,7 +70,8 @@ public class ControlFlowGraph {
                graph=exit;
             }
             else {
-               Node searcher=lastControlStatement.pop().exitNode; //Should be a dummy node here from the last closure.
+               //Should be a dummy node here from the last closure.
+               Node searcher=lastControlStatement.pop().exitNode;
                for(; searcher.exitNode!=null && 
                      searcher.exitNode.type!=Node.DUMMY_NODE;
                      searcher=searcher.exitNode);
@@ -144,7 +147,8 @@ public class ControlFlowGraph {
       for(int i=0;i<edgeList.size();i++) {
          if(DEBUG) System.out.println("iteration: i="+i);
          if(edgeList.get(i).type==Node.DUMMY_NODE) {
-            if(DEBUG) System.out.println("\tNode is a dummy node, performing relinking.");
+            if(DEBUG) System.out.println("\tNode is a dummy node, performing" +
+            		" relinking.");
             Node temp = edgeList.get(i).exitNode;
             edgeList.remove(i);
             edgeList.add(i,temp);
@@ -157,13 +161,15 @@ public class ControlFlowGraph {
       Node dummy=generateStructure(Node.DUMMY_NODE,-1);
       dummy.exitNode=popped;
       lastControlStatement.push(dummy);
-      if(DEBUG) System.out.println("Dummy node("+dummy.UUID+") was created and push onto the stack.");
+      if(DEBUG) System.out.println("Dummy node("+dummy.UUID+") was created " +
+      		"and push onto the stack.");
    }
    
    private void process(int nodeType, int lineNumber, String line) {
       if(DEBUG){
-         System.out.println("DEBUG: process("+nodeType+","+lineNumber+","+line+") was called." +
-         		"\nlastControlStatemet.isEmpty()? "+(lastControlStatement.isEmpty()));
+         System.out.println("DEBUG: process("+nodeType+","+lineNumber+","+line+
+               ") was called."+"\nlastControlStatemet.isEmpty()? "+
+               (lastControlStatement.isEmpty()));
       }
       Node struct=generateStructure(nodeType,lineNumber);
       if(!lastControlStatement.isEmpty()){
@@ -177,8 +183,9 @@ public class ControlFlowGraph {
                if(DEBUG) System.out.println("on stack: IF");
                //TODO: Finish if stack==if, fix for else
                if(DEBUG) {
-                  System.out.println("nodeType!=ELSE\nPushing struct on stack.");
-                  System.out.println("struct, UUID: "+struct.UUID+", type: "+struct.type);
+                  System.out.println("nodeType!=ELSE\nPushing struct on " +
+                  		"stack.\nstruct, UUID: "+struct.UUID+", type: "+
+                        struct.type);
                }
                //struct.setExit(lastAct.exitNode);
                //lastAct.setExit(struct);
@@ -193,12 +200,11 @@ public class ControlFlowGraph {
                   		"lastAct.lastLineNumber to: "+lineNumber);
                   lastAct.lastLineNumber=lineNumber;
                } else {
-                  if(DEBUG) System.out.println("nodeType (of passed node) !=SIMPLE: Executing else.");
-                  Node P1=lastControlStatement.pop(); //Take P1 off of the stack
+                  if(DEBUG) System.out.println("nodeType (of passed node) " +
+                  		"!=SIMPLE: Executing else.");
+                  Node P1=lastControlStatement.pop();//Take P1 off of the stack
                   struct.setExit(P1.exitNode);
-                  if(DEBUG) System.out.println("~~~~Calling setexit on the first P1 node.");
                   P1.setExit(struct); //link P1 to the new structure
-                  if(DEBUG) System.out.println("~~~~setExit ended on the first p1 node.");
                   if(graph==null) graph=P1; //If we start with a P1 then we need this.
                   lastControlStatement.push(struct);//push the new struct onto the stack
                   if(DEBUG) {
@@ -232,7 +238,9 @@ public class ControlFlowGraph {
                  lastAct.nesting(struct);
                  struct=lastAct;
                } else {
-                  if(DEBUG) System.out.println("lastAct: "+lastAct.UUID+","+lastAct.type+" calling setExit with parameter: "+struct.UUID);
+                  if(DEBUG) System.out.println("lastAct: "+lastAct.UUID+","+
+                        lastAct.type+" calling setExit with parameter: "+
+                        struct.UUID);
                   lastAct.setExit(struct);
                }
                lastControlStatement.push(struct);
@@ -240,7 +248,6 @@ public class ControlFlowGraph {
             case Node.DO_NODE:
                if(DEBUG) System.out.println("on stack: DO");
                if(nodeType==Node.WHILE_NODE && line.contains("}")){
-                  if(DEBUG) System.out.println("Closing do from while\n\""+line+"\"");
                   closer(line);
                   break;
                }
@@ -261,7 +268,6 @@ public class ControlFlowGraph {
          }//End Switch
       }//End If
       else {
-         if(DEBUG) System.out.println("lastControlAction.isEmpty()==true.\nPushing structure on the stack, and setting graph.");
          graph=struct;
          lastControlStatement.push(struct);
       }//End Else
@@ -272,15 +278,18 @@ public class ControlFlowGraph {
       if(line.contains("if")) returnVal=Node.IF_NODE;
       else if(line.contains("do")) returnVal=Node.DO_NODE;
       else if(line.contains("else")) returnVal=Node.ELSE_NODE;
-      else if(line.contains("while") && !line.contains("}")) returnVal=Node.WHILE_NODE;
+      else if(line.contains("while") && !line.contains("}")) 
+         returnVal=Node.WHILE_NODE;
       else if(line.contains("return")) returnVal=Node.RETURN_NODE;
       return returnVal;
    }
    
    /**
     * generateStructure creates a prime structure: D1,D2,D3,P1
-    * @param nodeType - int that should correspond to the values available in the node class.
-    * @return returns a graph structure of the passed prime number.  Invalid numbers return null.
+    * @param nodeType - int that should correspond to the values available 
+    *                   in the node class.
+    * @return returns a graph structure of the passed prime number.  
+    *         Invalid numbers return null.
     */
    public static Node generateStructure(int nodeType, int lineNumber) {
       if(DEBUG) System.out.println("DEBUG: generateStructure Called");
@@ -341,7 +350,8 @@ public class ControlFlowGraph {
     * @param lastLine
     * @return
     */
-   public static Node generateStructure(int nodeType, int firstLine, int lastLine){
+   public static Node generateStructure(int nodeType, int firstLine, 
+         int lastLine){
       Node n=generateStructure(nodeType,lastLine);
       n.firstLineNumber=firstLine;
       return n;
